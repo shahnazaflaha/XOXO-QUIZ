@@ -1,0 +1,193 @@
+import pygame, sys
+import numpy as np
+import PySimpleGUI as sg
+import random
+pygame.init()
+
+lebar = 600
+tinggi = 600
+tebalgaris = 15
+winningline= 15
+baris= 3
+kolom= 3
+kotak = 200
+radius = 60
+O = 15
+X = 25
+spasi = 55
+b = ()
+c = ()
+
+
+screen = pygame.display.set_mode( (lebar, tinggi) )
+pygame.display.set_caption( 'XOXO Quiz' )
+screen.fill( 'dodgerblue4' )
+
+board = np.zeros( (baris, kolom) )
+
+def dialogbox():
+    sg.theme('DarkAmber')   
+    layout = [ [sg.Text('PLAYER'), sg.Text(player),sg.Text('MENANG!!!!')],[sg.Button('Close')]]
+    window = sg.Window('Window Title', layout)
+    while True:
+        event, values= window.read()
+        if event == sg.WIN_CLOSED or event == 'Close':
+            window.close()
+            pygame.quit() 
+            sys.exit()
+            
+def draw_lines():
+    pygame.draw.line( screen, 'goldenrod2', (0, kotak), (lebar, kotak), tebalgaris )
+    pygame.draw.line( screen, 'goldenrod2', (0, 2 * kotak), (lebar, 2 * kotak), tebalgaris )
+    pygame.draw.line( screen, 'goldenrod2', (kotak, 0), (kotak, tinggi), tebalgaris )
+    pygame.draw.line( screen, 'goldenrod2', (2 * kotak, 0), (2 * kotak, tinggi), tebalgaris )
+
+# MENGGAMBAR X ATAU O
+def draw_figures():
+    for row in range(baris):
+        for col in range(kolom):
+            if board[row][col] == 1:
+                pygame.draw.circle( screen, 'black', (int( col * kotak + kotak//2 ), int( row * kotak + kotak//2 )), radius, O )
+            elif board[row][col] == 2:
+                pygame.draw.line( screen, 'darkred', (col * kotak + spasi, row * kotak + kotak - spasi), (col * kotak + kotak - spasi, row * kotak + spasi), X )	
+                pygame.draw.line( screen, 'darkred', (col * kotak + spasi, row * kotak + spasi), (col * kotak + kotak - spasi, row * kotak + kotak - spasi), X )
+
+                
+def mark_square(row, col, player):
+    board[row][col] = player
+
+    
+def available_square(row, col):
+    return board[row][col] == 0
+
+
+def is_board_full():
+    for row in range(baris):
+        for col in range(kolom):
+            if board[row][col] == 0:
+                return False
+            
+    return True
+
+#KONDISI MENANG (GARIS HORIZONTAL, GARIS VERTIKAL, GARIS DIAGONAL)
+def check_win(player):
+    for col in range(kolom):
+        if board[0][col] == player and board[1][col] == player and board[2][col] == player:
+            draw_vertical_winning_line(col, player)
+            
+            return True
+
+    for row in range(baris):
+        if board[row][0] == player and board[row][1] == player and board[row][2] == player:
+            draw_horizontal_winning_line(row, player)
+            
+            return True
+
+    if board[2][0] == player and board[1][1] == player and board[0][2] == player:
+        draw_asc_diagonal(player)
+        
+        return True
+
+    if board[0][0] == player and board[1][1] == player and board[2][2] == player:
+        draw_desc_diagonal(player)
+        
+        return True
+    
+    
+    
+    return False
+
+#MENGGAMBAR GARIS VERTIKAL
+def draw_vertical_winning_line(col, player):
+    posX = col * kotak + kotak//2
+    
+    if player == 1:
+        color = 'black'
+    elif player == 2:
+        color = 'darkred'
+
+    pygame.draw.line( screen, color, (posX, 15), (posX, tinggi - 15), tebalgaris )
+
+# MENGGAMBAR GARIS HORIZONTAL
+def draw_horizontal_winning_line(row, player):
+    posY = row * kotak + kotak//2
+    
+    if player == 1:
+        color = 'black'
+    elif player == 2:
+        color = 'darkred'
+
+
+    pygame.draw.line( screen, color, (15, posY), (lebar - 15, posY), winningline)
+
+# MENGGAMBAR GARIS DIAGONAL ATAS
+def draw_asc_diagonal(player):
+    if player == 1:
+        color = 'black'
+    elif player == 2:
+        color = 'darkred'
+    
+    pygame.draw.line( screen, color, (15, tinggi - 15), (lebar - 15, 15), winningline)
+
+# MENGGAMBAR GARIS DIAGONAL BAWAH
+def draw_desc_diagonal(player):
+    if player == 1:
+        color = 'black'
+    elif player == 2:
+        color = 'darkred'
+        
+    pygame.draw.line( screen, color, (15, 15), (lebar - 15, tinggi - 15), winningline)
+    
+ #RESTART 
+def restart():
+    screen.fill( 'dodgerblue4' )
+    draw_lines()
+    for row in range(baris):
+        for col in range(kolom):
+            board[row][col] = 0
+
+draw_lines()
+
+player = 1
+game_over = False
+
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            sys.exit()
+
+        if event.type == pygame.MOUSEBUTTONDOWN and not game_over:
+
+            mouseX = event.pos[0] 
+            mouseY = event.pos[1] 
+
+            clicked_row = int(mouseY // kotak)
+            clicked_col = int(mouseX // kotak)
+
+            if available_square( clicked_row, clicked_col ):
+                a = random.randrange(1000)
+                v = random.randrange(1,10)
+                sg.theme('LightBrown11')   
+                
+                layout = [  [sg.Text('Berapa nilai'), sg.Text(a),sg.Text('mod') ,sg.Text(v)],
+                            [sg.Input(key='nb')],
+                            [sg.Submit()]]
+        
+                window = sg.Window('Window Title', layout)
+                event, values = window.read()
+                b = int(values['nb'])
+                c = a % v
+                window.close()
+                if b == c:
+                    mark_square( clicked_row, clicked_col, player )
+                    if check_win(player):
+                        game_over = True
+                        pygame.display.set_caption( 'WIN!!!!!' ) #jika menang tulisan display berubah menjadi WIN!!!!
+                        draw_figures()
+                        pygame.display.update()
+                        dialogbox()
+                player = player % 2 + 1
+                draw_figures()
+    pygame.display.update()
+    
+    
